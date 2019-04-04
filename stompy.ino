@@ -353,17 +353,26 @@ void checkCtrlPot(struct ctrl_pot & pot) {
     if (chg != 0) {
       long theTime = millis();
       int8_t chg2 = ctrlVal - pot.lastVal2;
-      if (theTime - pot.lastChangeTime_ms > potChangeMinTime_ms) {
-  //      Serial.print(chg); Serial.print(' '); Serial.print(chg2); Serial.print(' '); 
-  //      Serial.print(pot.lastVal); Serial.print(' '); Serial.print(pot.lastVal2); Serial.print(' '); 
-  //      Serial.println(ctrlVal);
+      long potChangeT_ms = theTime - pot.lastChangeTime_ms;
+      if (potChangeT_ms > potChangeMinTime_ms) {
+#if defined(SERIAL_DEBUG) && SERIAL_DEBUG_LEVEL > 2
+        Serial.print(chg); Serial.print(' '); Serial.print(chg2); Serial.print(' '); 
+        Serial.print(pot.lastVal); Serial.print(' '); Serial.print(pot.lastVal2); Serial.print(' '); 
+        Serial.println(ctrlVal);
+#endif
         if (pot.lastVal2 == 255
                 || (ctrlVal <= 64 && (chg < 0 || chg2 > 3))
                 || (ctrlVal > 64 && (chg > 0 || chg2 < -3))) {
+#if defined(SERIAL_DEBUG) && SERIAL_DEBUG_LEVEL > 1
+          Serial.print(ctrlVal); Serial.print(' '); Serial.println(theTime - pot.lastChangeTime_ms);
+#endif
           pot.lastVal2 = pot.lastVal;
           pot.lastVal = ctrlVal;
           pot.lastChangeTime_ms = theTime;
           midiA.sendControlChange(pot.ctrl, ctrlVal, outChannel);
+          if (potChangeT_ms > 200) {
+            lamp.blink(3, 50);
+          }
         }
       }
     }

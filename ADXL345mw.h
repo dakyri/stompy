@@ -1,8 +1,9 @@
-/*
- * ADXL345mw.cpp - Header file for stripped back access to ADXL345 on Arduino.
+/**
+ * ADXL345mw.h - Header file for stripped back access to ADXL345 on Arduino.
  */
 
 #pragma once
+
 
 #if ARDUINO >= 100
 #include "Arduino.h"
@@ -10,6 +11,8 @@
 #include "WProgram.h"
 #endif
 
+
+#include "I2cInterface.h"
 
 namespace adxl345 {
 
@@ -24,7 +27,8 @@ public:
 	float z;
 };
 
-static const byte kAddress = 0x53;
+static const byte kAddress1 = 0x53;
+static const byte kAddress2 = 0x1d;
 static const byte kRegDevid = 0x00;
 static const byte kRegThreshTap = 0x1D; // 1
 static const byte kRegOfsX = 0x1E;
@@ -126,10 +130,10 @@ struct Activites
 	bool isDataReady;
 };
 
-class I2cInterface
+class I2cInterface: protected ::I2cInterface
 {
 public:
-	I2cInterface();
+	I2cInterface(byte p_address=kAddress1);
 
 	bool begin(void);
 	void clearSettings(void);
@@ -200,14 +204,6 @@ public:
 	void useInterrupt(int_t interrupt);
 	
 	bool isValid;
-
-private:
-	void writeRegister8(uint8_t reg, uint8_t value);
-	uint8_t readRegister8(uint8_t reg);
-	uint8_t fastRegister8(uint8_t reg);
-	int16_t readRegister16(uint8_t reg);
-	void writeRegisterBit(uint8_t reg, uint8_t pos, bool state);
-	bool readRegisterBit(uint8_t reg, uint8_t pos);
 };
 
 
