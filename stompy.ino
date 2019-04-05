@@ -16,7 +16,7 @@ const byte kCtrl = 1;
 const byte kCtrlLatch = 2;
 const byte kCtrlLatchOn = 3;
 
-adxl345::I2cInterface accelerometer;
+adxl345::Interface accelerometer;
 
 const int xlomReadDelay_ms = 100;
 const int debounceDelay_ms = 50;
@@ -379,7 +379,7 @@ void checkCtrlPot(struct ctrl_pot & pot) {
   }
 }
 
-void checkAccelerometer(adxl345::I2cInterface & xlm8r, struct xl_joy &xl) {
+void checkAccelerometer(adxl345::Interface & xlm8r, struct xl_joy &xl) {
   if (xlm8r.isValid && (xl.activeButton == 255 || buttons[xl.activeButton].pressed)) {
     long theTime = millis();
     if (theTime - xl.lastReading_ms > xlomReadDelay_ms) {

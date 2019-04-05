@@ -130,10 +130,10 @@ struct Activites
 	bool isDataReady;
 };
 
-class I2cInterface: protected ::I2cInterface
+class Interface
 {
 public:
-	I2cInterface(byte p_address=kAddress1);
+	Interface(byte p_address=kAddress1);
 
 	bool begin(void);
 	void clearSettings(void);
@@ -204,6 +204,8 @@ public:
 	void useInterrupt(int_t interrupt);
 	
 	bool isValid;
+protected:
+  ::I2cInterface io;
 };
 
 

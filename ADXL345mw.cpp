@@ -15,21 +15,21 @@ void Vector::lowPassFilter(Vector vector, float alpha) {
 	z = vector.z * alpha + (z * (1.0 - alpha));
 }
 
-I2cInterface::I2cInterface(byte p_address): ::I2cInterface(p_address), isValid(false) {
+Interface::Interface(byte p_address): io(p_address), isValid(false) {
 	
 }
 
-bool I2cInterface::begin()
+bool Interface::begin()
 {
-  ::I2cInterface::begin();
+  io.begin();
 	// Check ADXL345 REG DEVID
-	if (fastRegister8(kRegDevid) != 0xE5) {
+	if (io.fastRegister8(kRegDevid) != 0xE5) {
 		isValid = false;
 		return isValid;
 	}
 	isValid = true;
 	// Enable measurement mode (0b00001000)
-	writeRegister8(kRegActPowerCtl, 0x08);
+	io.writeRegister8(kRegActPowerCtl, 0x08);
 	clearSettings();
 	return true;
 }
@@ -37,10 +37,10 @@ bool I2cInterface::begin()
 /**
  *  Set Range
  */
-void I2cInterface::setRange(range_t range)
+void Interface::setRange(range_t range)
 {
 	// Get actual value register
-	uint8_t value = readRegister8(kRegDataFormat);
+	uint8_t value = io.readRegister8(kRegDataFormat);
 	
 	// Update the data rate
 	// (&) 0b11110000 (0xF0 - Leave HSB)
@@ -50,48 +50,48 @@ void I2cInterface::setRange(range_t range)
 	value |= range;
 	value |= 0x08;
 	
-	writeRegister8(kRegDataFormat, value);
+	io.writeRegister8(kRegDataFormat, value);
 }
 
 /**
  *  Get Range
  */
-range_t I2cInterface::getRange(void)
+range_t Interface::getRange(void)
 {
-	return (range_t)(readRegister8(kRegDataFormat) & 0x03);
+	return (range_t)(io.readRegister8(kRegDataFormat) & 0x03);
 }
 
 /**
  *  Set Data Rate
  */
-void I2cInterface::setDataRate(dataRate_t dataRate)
+void Interface::setDataRate(dataRate_t dataRate)
 {
-	writeRegister8(kRegActBwCtl, dataRate);
+	io.writeRegister8(kRegActBwCtl, dataRate);
 }
 
 /**
  *  Get Data Rate
  */
-dataRate_t I2cInterface::getDataRate(void)
+dataRate_t Interface::getDataRate(void)
 {
-	return (dataRate_t)(readRegister8(kRegActBwCtl) & 0x0F);
+	return (dataRate_t)(io.readRegister8(kRegActBwCtl) & 0x0F);
 }
 
 
 /**
  *  Read raw values
  */
-void I2cInterface::readRaw(int16_t &x, int16_t &y, int16_t &z)
+void Interface::readRaw(int16_t &x, int16_t &y, int16_t &z)
 {
-	x = readRegister16(kRegDataX0);
-	y = readRegister16(kRegDataY0);
-	z = readRegister16(kRegDataZ0);
+	x = io.readRegister16(kRegDataX0);
+	y = io.readRegister16(kRegDataY0);
+	z = io.readRegister16(kRegDataZ0);
 }
 
 /**
  *  Read normalized values
  */
-Vector I2cInterface::readNormalize(float gravityFactor)
+Vector Interface::readNormalize(float gravityFactor)
 {
 	int16_t x, y, z;
 	readRaw(x, y, z);
@@ -101,226 +101,226 @@ Vector I2cInterface::readNormalize(float gravityFactor)
 /**
  *  Read scaled values
  */
-Vector I2cInterface::readScaled(void)
+Vector Interface::readScaled(void)
 {
 	int16_t x, y, z;
 	readRaw(x, y, z);
 	return Vector(x, y, z, 0.004f);
 }
 
-void I2cInterface::clearSettings(void)
+void Interface::clearSettings(void)
 {
 	setRange(kRange2G);
 	setDataRate(kDatarate100HZ);
 
-	writeRegister8(kRegThreshTap, 0x00);
-	writeRegister8(kRegDur, 0x00);
-	writeRegister8(kRegLatent, 0x00);
-	writeRegister8(kRegWindow, 0x00);
-	writeRegister8(kRegThreshAct, 0x00);
-	writeRegister8(kRegThreshInact, 0x00);
-	writeRegister8(kRegTimeInact, 0x00);
-	writeRegister8(kRegThreshFreefall, 0x00);
-	writeRegister8(kRegTimeFreefall, 0x00);
+	io.writeRegister8(kRegThreshTap, 0x00);
+	io.writeRegister8(kRegDur, 0x00);
+	io.writeRegister8(kRegLatent, 0x00);
+	io.writeRegister8(kRegWindow, 0x00);
+	io.writeRegister8(kRegThreshAct, 0x00);
+	io.writeRegister8(kRegThreshInact, 0x00);
+	io.writeRegister8(kRegTimeInact, 0x00);
+	io.writeRegister8(kRegThreshFreefall, 0x00);
+	io.writeRegister8(kRegTimeFreefall, 0x00);
 
 	uint8_t value;
 
-	value = readRegister8(kRegActInactCtl);
+	value = io.readRegister8(kRegActInactCtl);
 	value &= 0b10001000;
-	writeRegister8(kRegActInactCtl, value);
+	io.writeRegister8(kRegActInactCtl, value);
 
-	value = readRegister8(kRegTapAxes);
+	value = io.readRegister8(kRegTapAxes);
 	value &= 0b11111000;
-	writeRegister8(kRegTapAxes, value);
+	io.writeRegister8(kRegTapAxes, value);
 }
 
 /**
  *  Set Tap Threshold (62.5mg / LSB)
  */
-void I2cInterface::setTapThreshold(float threshold)
+void Interface::setTapThreshold(float threshold)
 {
 	uint8_t scaled = constrain(threshold / 0.0625f, 0, 255);
-	writeRegister8(kRegThreshTap, scaled);
+	io.writeRegister8(kRegThreshTap, scaled);
 }
 
 /**
  *  Get Tap Threshold (62.5mg / LSB)
  */
-float I2cInterface::getTapThreshold(void)
+float Interface::getTapThreshold(void)
 {
-	return readRegister8(kRegThreshTap) * 0.0625f;
+	return io.readRegister8(kRegThreshTap) * 0.0625f;
 }
 
 /**
  *  Set Tap Duration (625us / LSB)
  */
-void I2cInterface::setTapDuration(float duration)
+void Interface::setTapDuration(float duration)
 {
 	uint8_t scaled = constrain(duration / 0.000625f, 0, 255);
-	writeRegister8(kRegDur, scaled);
+	io.writeRegister8(kRegDur, scaled);
 }
 
 /**
  *  Get Tap Duration (625us / LSB)
  */
-float I2cInterface::getTapDuration(void)
+float Interface::getTapDuration(void)
 {
-	return readRegister8(kRegDur) * 0.000625f;
+	return io.readRegister8(kRegDur) * 0.000625f;
 }
 
 /**
  *  Set Double Tap Latency (1.25ms / LSB)
  */
-void I2cInterface::setDoubleTapLatency(float latency)
+void Interface::setDoubleTapLatency(float latency)
 {
 	uint8_t scaled = constrain(latency / 0.00125f, 0, 255);
-	writeRegister8(kRegLatent, scaled);
+	io.writeRegister8(kRegLatent, scaled);
 }
 
 /**
  *  Get Double Tap Latency (1.25ms / LSB)
  */
-float I2cInterface::getDoubleTapLatency()
+float Interface::getDoubleTapLatency()
 {
-	return readRegister8(kRegLatent) * 0.00125f;
+	return io.readRegister8(kRegLatent) * 0.00125f;
 }
 
 /**
  *  Set Double Tap Window (1.25ms / LSB)
  */
-void I2cInterface::setDoubleTapWindow(float window)
+void Interface::setDoubleTapWindow(float window)
 {
 	uint8_t scaled = constrain(window / 0.00125f, 0, 255);
-	writeRegister8(kRegWindow, scaled);
+	io.writeRegister8(kRegWindow, scaled);
 }
 
 /**
  *  Get Double Tap Window (1.25ms / LSB)
  */
-float I2cInterface::getDoubleTapWindow(void)
+float Interface::getDoubleTapWindow(void)
 {
-	return readRegister8(kRegWindow) * 0.00125f;
+	return io.readRegister8(kRegWindow) * 0.00125f;
 }
 
 /**
  *  Set Activity Threshold (62.5mg / LSB)
  */
-void I2cInterface::setActivityThreshold(float threshold)
+void Interface::setActivityThreshold(float threshold)
 {
 	uint8_t scaled = constrain(threshold / 0.0625f, 0, 255);
-	writeRegister8(kRegThreshAct, scaled);
+	io.writeRegister8(kRegThreshAct, scaled);
 }
 
 /**
  *  Get Activity Threshold (65.5mg / LSB)
  */
-float I2cInterface::getActivityThreshold(void)
+float Interface::getActivityThreshold(void)
 {
-	return readRegister8(kRegThreshAct) * 0.0625f;
+	return io.readRegister8(kRegThreshAct) * 0.0625f;
 }
 
 /**
  *  Set Inactivity Threshold (65.5mg / LSB)
  */
-void I2cInterface::setInactivityThreshold(float threshold)
+void Interface::setInactivityThreshold(float threshold)
 {
 	uint8_t scaled = constrain(threshold / 0.0625f, 0, 255);
-	writeRegister8(kRegThreshInact, scaled);
+	io.writeRegister8(kRegThreshInact, scaled);
 }
 
 /**
  *  Get Incactivity Threshold (65.5mg / LSB)
  */
-float I2cInterface::getInactivityThreshold(void)
+float Interface::getInactivityThreshold(void)
 {
-	return readRegister8(kRegThreshInact) * 0.0625f;
+	return io.readRegister8(kRegThreshInact) * 0.0625f;
 }
 
 /**
  *  Set Inactivity Time (s / LSB)
  */
-void I2cInterface::setTimeInactivity(uint8_t time)
+void Interface::setTimeInactivity(uint8_t time)
 {
-	writeRegister8(kRegTimeInact, time);
+	io.writeRegister8(kRegTimeInact, time);
 }
 
 /**
  *  Get Inactivity Time (s / LSB)
  */
-uint8_t I2cInterface::getTimeInactivity(void)
+uint8_t Interface::getTimeInactivity(void)
 {
-	return readRegister8(kRegTimeInact);
+	return io.readRegister8(kRegTimeInact);
 }
 
 /**
  *  Set Free Fall Threshold (65.5mg / LSB)
  */
-void I2cInterface::setFreeFallThreshold(float threshold)
+void Interface::setFreeFallThreshold(float threshold)
 {
 	uint8_t scaled = constrain(threshold / 0.0625f, 0, 255);
-	writeRegister8(kRegThreshFreefall, scaled);
+	io.writeRegister8(kRegThreshFreefall, scaled);
 }
 
 /**
  *  Get Free Fall Threshold (65.5mg / LSB)
  */
-float I2cInterface::getFreeFallThreshold(void)
+float Interface::getFreeFallThreshold(void)
 {
-	return readRegister8(kRegThreshFreefall) * 0.0625f;
+	return io.readRegister8(kRegThreshFreefall) * 0.0625f;
 }
 
 /**
  *  Set Free Fall Duratiom (5ms / LSB)
  */
-void I2cInterface::setFreeFallDuration(float duration)
+void Interface::setFreeFallDuration(float duration)
 {
 	uint8_t scaled = constrain(duration / 0.005f, 0, 255);
-	writeRegister8(kRegTimeFreefall, scaled);
+	io.writeRegister8(kRegTimeFreefall, scaled);
 }
 
 /**
  *  Get Free Fall Duratiom
  */
-float I2cInterface::getFreeFallDuration()
+float Interface::getFreeFallDuration()
 {
-	return readRegister8(kRegTimeFreefall) * 0.005f;
+	return io.readRegister8(kRegTimeFreefall) * 0.005f;
 }
 
-void I2cInterface::setActivityX(bool state)
+void Interface::setActivityX(bool state)
 {
-	writeRegisterBit(kRegActInactCtl, 6, state);
+	io.writeRegisterBit(kRegActInactCtl, 6, state);
 }
 
-bool I2cInterface::getActivityX(void)
+bool Interface::getActivityX(void)
 {
-	return readRegisterBit(kRegActInactCtl, 6);
+	return io.readRegisterBit(kRegActInactCtl, 6);
 }
 
-void I2cInterface::setActivityY(bool state)
+void Interface::setActivityY(bool state)
 {
-	writeRegisterBit(kRegActInactCtl, 5, state);
+	io.writeRegisterBit(kRegActInactCtl, 5, state);
 }
 
-bool I2cInterface::getActivityY(void)
+bool Interface::getActivityY(void)
 {
-	return readRegisterBit(kRegActInactCtl, 5);
+	return io.readRegisterBit(kRegActInactCtl, 5);
 }
 
-void I2cInterface::setActivityZ(bool state)
+void Interface::setActivityZ(bool state)
 {
-	writeRegisterBit(kRegActInactCtl, 4, state);
+	io.writeRegisterBit(kRegActInactCtl, 4, state);
 }
 
-bool I2cInterface::getActivityZ(void)
+bool Interface::getActivityZ(void)
 {
-	return readRegisterBit(kRegActInactCtl, 4);
+	return io.readRegisterBit(kRegActInactCtl, 4);
 }
 
-void I2cInterface::setActivityXYZ(bool state)
+void Interface::setActivityXYZ(bool state)
 {
 	uint8_t value;
 
-	value = readRegister8(kRegActInactCtl);
+	value = io.readRegister8(kRegActInactCtl);
 
 	if (state) {
 		value |= 0b00111000;
@@ -328,109 +328,109 @@ void I2cInterface::setActivityXYZ(bool state)
 		value &= 0b11000111;
 	}
 
-	writeRegister8(kRegActInactCtl, value);
+	io.writeRegister8(kRegActInactCtl, value);
 }
 
 
-void I2cInterface::setInactivityX(bool state) 
+void Interface::setInactivityX(bool state) 
 {
-	writeRegisterBit(kRegActInactCtl, 2, state);
+	io.writeRegisterBit(kRegActInactCtl, 2, state);
 }
 
-bool I2cInterface::getInactivityX(void)
+bool Interface::getInactivityX(void)
 {
-	return readRegisterBit(kRegActInactCtl, 2);
+	return io.readRegisterBit(kRegActInactCtl, 2);
 }
 
-void I2cInterface::setInactivityY(bool state)
+void Interface::setInactivityY(bool state)
 {
-	writeRegisterBit(kRegActInactCtl, 1, state);
+	io.writeRegisterBit(kRegActInactCtl, 1, state);
 }
 
-bool I2cInterface::getInactivityY(void)
+bool Interface::getInactivityY(void)
 {
-	return readRegisterBit(kRegActInactCtl, 1);
+	return io.readRegisterBit(kRegActInactCtl, 1);
 }
 
-void I2cInterface::setInactivityZ(bool state)
+void Interface::setInactivityZ(bool state)
 {
-	writeRegisterBit(kRegActInactCtl, 0, state);
+	io.writeRegisterBit(kRegActInactCtl, 0, state);
 }
 
-bool I2cInterface::getInactivityZ(void)
+bool Interface::getInactivityZ(void)
 {
-	return readRegisterBit(kRegActInactCtl, 0);
+	return io.readRegisterBit(kRegActInactCtl, 0);
 }
 
-void I2cInterface::setInactivityXYZ(bool state)
+void Interface::setInactivityXYZ(bool state)
 {
-	uint8_t value = readRegister8(kRegActInactCtl);
+	uint8_t value = io.readRegister8(kRegActInactCtl);
 	if (state) {
 		value |= 0b00000111;
 	} else {
 		value &= 0b11111000;
 	}
-	writeRegister8(kRegActInactCtl, value);
+	io.writeRegister8(kRegActInactCtl, value);
 }
 
-void I2cInterface::setTapDetectionX(bool state)
+void Interface::setTapDetectionX(bool state)
 {
-	writeRegisterBit(kRegTapAxes, 2, state);
+	io.writeRegisterBit(kRegTapAxes, 2, state);
 }
 
-bool I2cInterface::getTapDetectionX(void)
+bool Interface::getTapDetectionX(void)
 {
-	return readRegisterBit(kRegTapAxes, 2);
+	return io.readRegisterBit(kRegTapAxes, 2);
 }
 
-void I2cInterface::setTapDetectionY(bool state)
+void Interface::setTapDetectionY(bool state)
 {
-	writeRegisterBit(kRegTapAxes, 1, state);
+	io.writeRegisterBit(kRegTapAxes, 1, state);
 }
 
-bool I2cInterface::getTapDetectionY(void)
+bool Interface::getTapDetectionY(void)
 {
-	return readRegisterBit(kRegTapAxes, 1);
+	return io.readRegisterBit(kRegTapAxes, 1);
 }
 
-void I2cInterface::setTapDetectionZ(bool state)
+void Interface::setTapDetectionZ(bool state)
 {
-	writeRegisterBit(kRegTapAxes, 0, state);
+	io.writeRegisterBit(kRegTapAxes, 0, state);
 }
 
-bool I2cInterface::getTapDetectionZ(void)
+bool Interface::getTapDetectionZ(void)
 {
-	return readRegisterBit(kRegTapAxes, 0);
+	return io.readRegisterBit(kRegTapAxes, 0);
 }
 
-void I2cInterface::setTapDetectionXYZ(bool state)
+void Interface::setTapDetectionXYZ(bool state)
 {
 	uint8_t value;
-	value = readRegister8(kRegTapAxes);
+	value = io.readRegister8(kRegTapAxes);
 	if (state) {
 		value |= 0b00000111;
 	} else {
 		value &= 0b11111000;
 	}
-	writeRegister8(kRegTapAxes, value);
+	io.writeRegister8(kRegTapAxes, value);
 }
 
 
-void I2cInterface::useInterrupt(int_t interrupt)
+void Interface::useInterrupt(int_t interrupt)
 {
 	if (interrupt == 0) {
-		writeRegister8(kRegIntMap, 0x00);
+		io.writeRegister8(kRegIntMap, 0x00);
 	} else {
-		writeRegister8(kRegIntMap, 0xFF);
+		io.writeRegister8(kRegIntMap, 0xFF);
 	}
-	writeRegister8(kRegIntEnable, 0xFF);
+	io.writeRegister8(kRegIntEnable, 0xFF);
 }
 
-Activites I2cInterface::readActivites(void)
+Activites Interface::readActivites(void)
 {
 	Activites a;
 
-	uint8_t data = readRegister8(kRegIntSource);
+	uint8_t data = io.readRegister8(kRegIntSource);
 
 	a.isOverrun = (data & kOverrun);
 	a.isWatermark = (data & kWatermark);
@@ -441,7 +441,7 @@ Activites I2cInterface::readActivites(void)
 	a.isTap = (data & kSingleTap);
 	a.isDataReady = (data & kDataReady);
 
-	data = readRegister8(kRegActTapStatus);
+	data = io.readRegister8(kRegActTapStatus);
 
 	a.isActivityOnX = (data & (6 << 1));
 	a.isActivityOnY = (data & (5 << 1));

@@ -14,7 +14,7 @@
 class I2cInterface {
 public:
   I2cInterface(const byte p_address): address(p_address) {}
-protected:
+
   void begin(void);
 
   void writeRegister8(uint8_t reg, uint8_t value);
