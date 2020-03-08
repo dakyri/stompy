@@ -1,3 +1,5 @@
+#include <MIDI.h>
+
 #include "Arduino.h"
 #include <MIDI.h>
 #include "ADXL345mw.h"

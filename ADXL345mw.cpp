@@ -15,7 +15,7 @@ void Vector::lowPassFilter(Vector vector, float alpha) {
 	z = vector.z * alpha + (z * (1.0 - alpha));
 }
 
-Interface::Interface(byte p_address): io(p_address), isValid(false) {
+Interface::Interface(byte p_address): isValid(false), io(p_address) {
 	
 }
 
