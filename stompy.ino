@@ -278,12 +278,20 @@ protected:
  * DATA DEFINITIIONS
  ******************************************************************************/
 struct stomp_button buttons[] = {
+/*
   { 19, kCtrl, 92 },  // KP3 touch
   { 18, kNote, 36 },  // KP3 sample1
   { 15, kNote, 37 },  // KP3 sample2
   { 14, kNote, 38 },  // KP3 sample3
   { 16, kNote, 39 },  // KP3 sample4
   { 10, kCtrlLatch, 95 }  // KP3 hold
+*/
+  { 19, kNote, 36 },  // KP3 sample1
+  { 18, kNote, 37 },  // KP3 sample2
+  { 15, kCtrl, 92 },  // KP3 touch
+  { 14, kCtrlLatch, 95 },  // KP3 hold
+  { 16, kNote, 38 },  // KP3 sample3
+  { 10, kNote, 39 }  // KP3 sample4
 };
 const byte n_buttons = sizeof(buttons)/sizeof(stomp_button);
 
@@ -292,7 +300,7 @@ struct ctrl_pot pots[] = {
 };
 byte n_pots = sizeof(pots)/sizeof(ctrl_pot);
 
-struct xl_joy xl{/* activate */ 0, /* pitch */  12, -45, 45, 0, 127, /* roll */ 13, -45, 45, 0, 127};
+struct xl_joy xl{/* activate */ 2, /* pitch */  12, -45, 45, 0, 127, /* roll */ 13, -45, 45, 0, 127};
 
 /**
  * check the digital pushbuttons

@@ -28,7 +28,7 @@ void I2cInterface::writeRegister8(uint8_t reg, uint8_t value)
 }
 
 /**
- *  Read byte to register
+ *  Read byte from register ... quickly!
  */
 uint8_t I2cInterface::fastRegister8(uint8_t reg)
 {
