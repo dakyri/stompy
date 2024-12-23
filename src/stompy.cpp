@@ -13,9 +13,10 @@ const double kRad = (1.0/M_PI);
 typedef byte btn_mode_t;
 
 const byte kNote = 0;
-const byte kCtrl = 1;
-const byte kCtrlLatch = 2;
-const byte kCtrlLatchOn = 3;
+const byte kProg = 1;
+const byte kCtrl = 2;
+const byte kCtrlLatch = 3;
+const byte kCtrlLatchOn = 4;
 
 adxl345::Interface accelerometer;
 
@@ -27,6 +28,14 @@ const int axisChangeMinTime_ms = 50;
 byte buttonVelocity = 80;
 byte outChannel = 1;
 
+
+bool enabledPin(const byte pin) {
+	if (pin != 255) {
+		byte enableState = digitalRead(pin);
+		return (enableState == HIGH);
+	}
+	return false;
+}
 
 /*****************************************************
  * COLOR AND LAMP INTERFACE
@@ -87,8 +96,11 @@ public:
 			}
 			blinkEndTime_ms = 0;
 		} else if (state < 0) {
+			const bool enabledPedal = enabledPin(8);
 			if (accelerometer.isValid) {
-				blink(5,1000);
+				blink(enabledPedal?4:5,1000);
+			} else if (enabledPedal) {
+				blink(3, 1000);
 			} else {
 				setState(0);
 			}
@@ -280,29 +292,37 @@ void checkStompButton(struct stomp_button & button);
  * DATA DEFINITIIONS
  ******************************************************************************/
 struct stomp_button buttons[] = {
-/*
+#ifdef KP2_ORIG
 	{ 19, kCtrl, 92 },	// KP3 touch
 	{ 18, kNote, 36 },	// KP3 sample1
 	{ 15, kNote, 37 },	// KP3 sample2
 	{ 14, kNote, 38 },	// KP3 sample3
 	{ 16, kNote, 39 },	// KP3 sample4
 	{ 10, kCtrlLatch, 95 }	// KP3 hold
-*/
+#elif KP2_NEXT
 	{ 19, kNote, 36 },	// KP3 sample1
 	{ 18, kNote, 37 },	// KP3 sample2
 	{ 15, kCtrl, 92 },	// KP3 touch
 	{ 14, kCtrlLatch, 95 },	// KP3 hold
 	{ 16, kNote, 38 },	// KP3 sample3
 	{ 10, kNote, 39 }	// KP3 sample4
+#else // RC202
+	{ 19, kProg, 32 },	// upper left. Bank 4-0
+	{ 18, kCtrl, 81 },	// middle left. Ctl 81
+	{ 15, kCtrl, 79 },	// lower left, and xlrm enable
+	{ 14, kCtrl, 80 },	// lower right. Ctl 80
+	{ 16, kCtrl, 82 },	// middle right. Ctl 82
+	{ 10, kProg, 33 }	// upper right.  Bank 4-1
+#endif
 };
 const byte n_buttons = sizeof(buttons)/sizeof(stomp_button);
 
 struct ctrl_pot pots[] = {
-	{ 20, 21, 94 }	// KP3 fx depth, analog pin 9, enable on pin 8
+	{ 20, 21, 85 }	// KP3 fx depth, analog pin 9, enable on pin 8
 };
 byte n_pots = sizeof(pots)/sizeof(ctrl_pot);
 
-struct xl_joy xl{/* activate */ 2, /* pitch */	12, -45, 45, 0, 127, /* roll */ 13, -45, 45, 0, 127};
+struct xl_joy xl{/* activate */ 2, /* pitch */	83, -45, 45, 0, 127, /* roll */ 84, -45, 45, 0, 127};
 
 /**
  * check the digital pushbuttons
@@ -322,10 +342,13 @@ void checkStompButton(struct stomp_button & button) {
 			if (button.mode == kCtrl) {
 				midiA.sendControlChange(button.target, 127, outChannel);
 				lamp.blink(1, 200);
+			} else if (button.mode == kProg){
+				midiA.sendProgramChange(button.target, outChannel);
+				lamp.blink(2, 200);
 			} else if (button.mode == kNote){
 				midiA.sendNoteOn(button.target, buttonVelocity, outChannel);
 				lamp.blink(2, 200);
-		 } else if (button.mode == kCtrlLatch){
+			} else if (button.mode == kCtrlLatch){
 				button.mode = kCtrlLatchOn;
 				midiA.sendControlChange(button.target, 127, outChannel);
 				lamp.blink(3, 200);
@@ -351,13 +374,12 @@ void checkStompButton(struct stomp_button & button) {
 /**
  * check the analog pots
  */
+bool enabledCtrlPot(struct ctrl_pot & pot) {
+	return enabledPin(pot.enablePin);
+}
+
 void checkCtrlPot(struct ctrl_pot & pot) {
-	bool enabled = true;
-	if (pot.enablePin != 255) {
-		byte enableState = digitalRead(pot.enablePin);
-		enabled = (enableState == HIGH);
-	}
-	if (enabled) {
+	if (enabledCtrlPot(pot)) {
 		int potState = analogRead(pot.pin); /* 0..1023 */
 		potState -= 512;
 		if (potState < 0) potState = 0;
@@ -379,6 +401,7 @@ void checkCtrlPot(struct ctrl_pot & pot) {
 #if defined(SERIAL_DEBUG) && SERIAL_DEBUG_LEVEL > 1
 					Serial.print(ctrlVal); Serial.print(' '); Serial.println(theTime - pot.lastChangeTime_ms);
 #endif
+					if (ctrlVal < 0xf) ctrlVal = 0;
 					pot.lastVal2 = pot.lastVal;
 					pot.lastVal = ctrlVal;
 					pot.lastChangeTime_ms = theTime;
@@ -434,12 +457,19 @@ void setup() {
 	
 	midiA.turnThruOn();
 	midiA.begin(MIDI_CHANNEL_OMNI);
+	const bool enabledPedal = enabledCtrlPot(pots[0]);
 	if (accelerometer.begin()) {
 #ifdef SERIAL_DEBUG
 		Serial.println("Initialized accelerometer");
 #endif
 		accelerometer.setRange(adxl345::kRange16G);
+		if (enabledPedal) {
+			const byte tc = xl.roll.ctrl;
+			xl.roll.ctrl = pots[0].ctrl;
+			pots[0].ctrl = tc;
+		}
 	} else {
+		pots[0].ctrl = xl.pitch.ctrl;
 #ifdef SERIAL_DEBUG
 		Serial.println("Failed to initialize accelerometer");
 #endif
